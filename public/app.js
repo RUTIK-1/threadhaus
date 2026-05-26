@@ -5,6 +5,81 @@ const state = {
   query: ""
 };
 
+const fallbackProducts = [
+  {
+    id: "linen-overshirt",
+    name: "Linen Overshirt",
+    category: "Women",
+    collection: "New Season",
+    price: 2499,
+    badge: "New",
+    description: "A breathable linen blend layer with clean tailoring and relaxed sleeves.",
+    colors: ["Ivory", "Sage", "Ink"],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    image: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    id: "tailored-cargo",
+    name: "Tailored Cargo Trouser",
+    category: "Men",
+    collection: "Essentials",
+    price: 3199,
+    badge: "Best Seller",
+    description: "Structured cotton cargos with tapered legs, deep pockets, and refined hardware.",
+    colors: ["Olive", "Charcoal", "Stone"],
+    sizes: ["28", "30", "32", "34", "36"],
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    id: "rib-knit-dress",
+    name: "Rib Knit Midi Dress",
+    category: "Women",
+    collection: "Evening",
+    price: 2799,
+    badge: "Limited",
+    description: "Soft stretch rib with a close fit, side slit, and a square neckline.",
+    colors: ["Black", "Cocoa", "Wine"],
+    sizes: ["XS", "S", "M", "L"],
+    image: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    id: "boxy-denim-jacket",
+    name: "Boxy Denim Jacket",
+    category: "Unisex",
+    collection: "Street",
+    price: 3499,
+    badge: "Trending",
+    description: "Vintage-wash denim jacket cut wide through the body for easy layering.",
+    colors: ["Light Blue", "Washed Black"],
+    sizes: ["S", "M", "L", "XL"],
+    image: "https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    id: "organic-tee-pack",
+    name: "Organic Tee Pack",
+    category: "Unisex",
+    collection: "Essentials",
+    price: 1899,
+    badge: "Value",
+    description: "Three heavyweight organic cotton tees with a polished everyday fit.",
+    colors: ["White", "Black", "Grey"],
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    id: "satin-coord-set",
+    name: "Satin Co-ord Set",
+    category: "Women",
+    collection: "Evening",
+    price: 4299,
+    badge: "Premium",
+    description: "Fluid satin shirt and wide-leg trouser set made for dressy comfort.",
+    colors: ["Champagne", "Emerald", "Navy"],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=900&q=80"
+  }
+];
+
 const productGrid = document.querySelector("#productGrid");
 const cartButton = document.querySelector("#cartButton");
 const closeCart = document.querySelector("#closeCart");
@@ -151,12 +226,21 @@ async function submitOrder(event) {
     items: state.cart.map(({ productId, size, color, quantity }) => ({ productId, size, color, quantity }))
   };
 
-  const response = await fetch("/api/orders", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
+  let response;
+  let result;
+
+  try {
+    response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    result = await response.json();
+  } catch {
+    formMessage.textContent = "Checkout needs the backend API. Please deploy this as a Node web service.";
+    formMessage.classList.add("error");
+    return;
+  }
 
   if (!response.ok) {
     formMessage.textContent = result.errors?.join(" ") || "Order failed.";
@@ -172,9 +256,15 @@ async function submitOrder(event) {
 }
 
 async function loadProducts() {
-  const response = await fetch("/api/products");
-  const data = await response.json();
-  state.products = data.products;
+  try {
+    const response = await fetch("/api/products");
+    if (!response.ok) throw new Error("Products API unavailable");
+    const data = await response.json();
+    state.products = data.products;
+  } catch {
+    state.products = fallbackProducts;
+  }
+
   renderProducts();
   renderCart();
 }
@@ -211,6 +301,4 @@ closeCart.addEventListener("click", closeCartDrawer);
 overlay.addEventListener("click", closeCartDrawer);
 checkoutForm.addEventListener("submit", submitOrder);
 
-loadProducts().catch(() => {
-  productGrid.innerHTML = `<p class="empty-cart">Products could not be loaded.</p>`;
-});
+loadProducts();
