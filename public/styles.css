@@ -96,6 +96,8 @@ a {
   padding: 10px 14px;
   border: 1px solid var(--line);
   background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
   font-weight: 800;
 }
 
@@ -505,6 +507,48 @@ h2 {
 
 .admin-shell {
   padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 56px);
+}
+
+.login-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 22px;
+  background:
+    linear-gradient(rgba(251, 250, 247, 0.6), rgba(251, 250, 247, 0.9)),
+    url("https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=80") center / cover;
+}
+
+.login-panel {
+  display: grid;
+  gap: 18px;
+  width: min(460px, 100%);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+  padding: clamp(22px, 5vw, 36px);
+  box-shadow: var(--shadow);
+}
+
+.login-panel h1 {
+  margin-bottom: 12px;
+  font-size: clamp(2.8rem, 9vw, 4.8rem);
+}
+
+.login-panel p:not(.eyebrow) {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.login-panel label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.login-panel input {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
 }
 
 .admin-hero {

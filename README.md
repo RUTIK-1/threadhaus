@@ -40,9 +40,15 @@ DELETE /api/admin/products/:id
 
 ## Admin Security
 
-For a public deployment, set an `ADMIN_KEY` environment variable in Render/Railway. Then enter the same key in the admin page before saving products.
+The admin page is password protected.
 
-If `ADMIN_KEY` is not set, the admin page is open. That is convenient for local testing, but not safe for a real public website.
+Local default password:
+
+```text
+admin123
+```
+
+For a public deployment, set an `ADMIN_PASSWORD` environment variable in Render/Railway. Use a strong password and do not keep the default password online.
 
 Example order payload:
 

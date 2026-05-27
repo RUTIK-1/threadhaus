@@ -8,7 +8,9 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const ORDERS_FILE = path.join(ROOT, "data", "orders.json");
 const PRODUCTS_FILE = path.join(ROOT, "data", "products.json");
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || "admin123";
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update(ADMIN_PASSWORD).digest("hex");
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
 const seedProducts = [
   {
@@ -111,11 +113,73 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function redirect(res, location) {
+  res.writeHead(302, {
+    Location: location,
+    "Cache-Control": "no-store"
+  });
+  res.end();
+}
+
 async function readBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? JSON.parse(raw) : {};
+}
+
+function parseCookies(req) {
+  const cookies = {};
+  const header = req.headers.cookie || "";
+
+  for (const part of header.split(";")) {
+    const [name, ...valueParts] = part.trim().split("=");
+    if (!name) continue;
+    cookies[name] = decodeURIComponent(valueParts.join("="));
+  }
+
+  return cookies;
+}
+
+function signSession(payload) {
+  return crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+}
+
+function createSessionToken() {
+  const expiresAt = Date.now() + SESSION_MAX_AGE_SECONDS * 1000;
+  const payload = `admin.${expiresAt}`;
+  return `${payload}.${signSession(payload)}`;
+}
+
+function hasAdminSession(req) {
+  const token = parseCookies(req).admin_session;
+  if (!token) return false;
+
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+
+  const payload = `${parts[0]}.${parts[1]}`;
+  const expected = signSession(payload);
+  const provided = parts[2];
+
+  if (expected.length !== provided.length) return false;
+  if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) return false;
+  return parts[0] === "admin" && Number(parts[1]) > Date.now();
+}
+
+function setAdminSession(res) {
+  const cookie = [
+    `admin_session=${encodeURIComponent(createSessionToken())}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    `Max-Age=${SESSION_MAX_AGE_SECONDS}`
+  ];
+  res.setHeader("Set-Cookie", cookie.join("; "));
+}
+
+function clearAdminSession(res) {
+  res.setHeader("Set-Cookie", "admin_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
 }
 
 function slugify(value) {
@@ -146,9 +210,8 @@ async function writeProducts(products) {
 }
 
 function requireAdmin(req, res) {
-  if (!ADMIN_KEY) return true;
-  if (req.headers["x-admin-key"] === ADMIN_KEY) return true;
-  sendJson(res, 401, { errors: ["Admin key is required."] });
+  if (hasAdminSession(req)) return true;
+  sendJson(res, 401, { errors: ["Admin login is required."] });
   return false;
 }
 
@@ -237,6 +300,29 @@ async function validateOrder(order) {
 async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/health") {
     return sendJson(res, 200, { ok: true, service: "clothing-store", timestamp: new Date().toISOString() });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/admin/session") {
+    return sendJson(res, 200, { authenticated: hasAdminSession(req) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/login") {
+    try {
+      const body = await readBody(req);
+      if (String(body.password || "") !== ADMIN_PASSWORD) {
+        return sendJson(res, 401, { errors: ["Incorrect admin password."] });
+      }
+
+      setAdminSession(res);
+      return sendJson(res, 200, { authenticated: true });
+    } catch {
+      return sendJson(res, 400, { errors: ["Could not log in."] });
+    }
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/logout") {
+    clearAdminSession(res);
+    return sendJson(res, 200, { authenticated: false });
   }
 
   if (req.method === "GET" && url.pathname === "/api/products") {
@@ -340,6 +426,11 @@ async function handleApi(req, res, url) {
 
 async function serveStatic(req, res, url) {
   const requestedPath = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+
+  if (requestedPath === "/admin.html" && !hasAdminSession(req)) {
+    return redirect(res, "/admin-login.html");
+  }
+
   const filePath = path.normalize(path.join(PUBLIC_DIR, requestedPath));
 
   if (!filePath.startsWith(PUBLIC_DIR)) {

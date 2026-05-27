@@ -14,7 +14,7 @@
         <a href="/">Storefront</a>
         <a href="#products">Products</a>
       </nav>
-      <a class="admin-link" href="/">View store</a>
+      <button class="admin-link" id="logoutButton" type="button">Log out</button>
     </header>
 
     <main class="admin-shell" id="products">
@@ -37,11 +37,6 @@
             </div>
             <button class="secondary-button" id="resetForm" type="button">New</button>
           </div>
-
-          <label>
-            Admin key
-            <input id="adminKey" type="password" autocomplete="current-password" placeholder="Only needed after setting ADMIN_KEY">
-          </label>
 
           <label>
             Product name

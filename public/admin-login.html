@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Login - Threadhaus</title>
+    <meta name="description" content="Threadhaus admin login.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="login-shell">
+      <form class="login-panel" id="loginForm">
+        <a class="brand" href="/">Threadhaus</a>
+        <div>
+          <p class="eyebrow">Admin</p>
+          <h1>Enter password</h1>
+          <p>Product management is locked. Sign in to add, edit, or delete products.</p>
+        </div>
+        <label>
+          Password
+          <input name="password" type="password" autocomplete="current-password" required autofocus>
+        </label>
+        <button class="checkout-button" type="submit">Unlock admin</button>
+        <p class="form-message" id="loginMessage" role="status"></p>
+      </form>
+    </main>
+
+    <script src="admin-login.js" defer></script>
+  </body>
+</html>

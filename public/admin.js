@@ -5,7 +5,7 @@ const message = document.querySelector("#adminMessage");
 const productList = document.querySelector("#adminProductList");
 const productCount = document.querySelector("#productCount");
 const resetFormButton = document.querySelector("#resetForm");
-const adminKeyInput = document.querySelector("#adminKey");
+const logoutButton = document.querySelector("#logoutButton");
 
 let products = [];
 
@@ -33,14 +33,6 @@ function productFromForm() {
     sizes: data.get("sizes"),
     colors: data.get("colors")
   };
-}
-
-function adminHeaders() {
-  const headers = { "Content-Type": "application/json" };
-  const key = adminKeyInput.value.trim();
-  if (key) headers["x-admin-key"] = key;
-  localStorage.setItem("threadhaus-admin-key", key);
-  return headers;
 }
 
 function fillForm(product) {
@@ -96,6 +88,12 @@ function renderProducts() {
 }
 
 async function loadProducts() {
+  const session = await fetch("/api/admin/session").then((response) => response.json());
+  if (!session.authenticated) {
+    window.location.href = "/admin-login.html";
+    return;
+  }
+
   const response = await fetch("/api/products");
   const data = await response.json();
   products = data.products || [];
@@ -109,10 +107,15 @@ async function saveProduct(event) {
   const editingId = currentId.value;
   const response = await fetch(editingId ? `/api/admin/products/${editingId}` : "/api/admin/products", {
     method: editingId ? "PUT" : "POST",
-    headers: adminHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(productFromForm())
   });
   const result = await response.json();
+
+  if (response.status === 401) {
+    window.location.href = "/admin-login.html";
+    return;
+  }
 
   if (!response.ok) {
     showMessage(result.errors?.join(" ") || "Could not save product.", true);
@@ -131,10 +134,14 @@ async function deleteProduct(productId) {
   if (!confirm(`Delete ${product.name}?`)) return;
 
   const response = await fetch(`/api/admin/products/${productId}`, {
-    method: "DELETE",
-    headers: adminHeaders()
+    method: "DELETE"
   });
   const result = await response.json();
+
+  if (response.status === 401) {
+    window.location.href = "/admin-login.html";
+    return;
+  }
 
   if (!response.ok) {
     showMessage(result.errors?.join(" ") || "Could not delete product.", true);
@@ -161,5 +168,8 @@ productList.addEventListener("click", (event) => {
 
 form.addEventListener("submit", saveProduct);
 resetFormButton.addEventListener("click", resetForm);
-adminKeyInput.value = localStorage.getItem("threadhaus-admin-key") || "";
+logoutButton.addEventListener("click", async () => {
+  await fetch("/api/admin/logout", { method: "POST" });
+  window.location.href = "/admin-login.html";
+});
 loadProducts().catch(() => showMessage("Backend API is not running. Deploy this as a Node web service.", true));
