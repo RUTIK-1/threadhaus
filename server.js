@@ -299,7 +299,7 @@ async function validateOrder(order) {
 
 async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/health") {
-    return sendJson(res, 200, { ok: true, service: "clothing-store", timestamp: new Date().toISOString() });
+    return sendJson(res, 200, { ok: true, service: "xelvora", timestamp: new Date().toISOString() });
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/session") {

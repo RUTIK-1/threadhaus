@@ -1,6 +1,6 @@
 const state = {
   products: [],
-  cart: JSON.parse(localStorage.getItem("threadhaus-cart") || "[]"),
+  cart: JSON.parse(localStorage.getItem("xelvora-cart") || "[]"),
   category: "All",
   query: ""
 };
@@ -103,7 +103,7 @@ const money = new Intl.NumberFormat("en-IN", {
 });
 
 function saveCart() {
-  localStorage.setItem("threadhaus-cart", JSON.stringify(state.cart));
+  localStorage.setItem("xelvora-cart", JSON.stringify(state.cart));
 }
 
 function renderProducts() {

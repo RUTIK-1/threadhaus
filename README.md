@@ -1,4 +1,4 @@
-# Threadhaus Clothing Store
+# Xelvora Clothing Store
 
 A clean full-stack clothing ecommerce starter with:
 

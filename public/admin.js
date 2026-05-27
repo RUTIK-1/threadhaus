@@ -125,7 +125,7 @@ async function saveProduct(event) {
   products = result.products;
   renderProducts();
   resetForm();
-  showMessage("Product saved. Refresh the storefront to see it live.");
+  showMessage("Product saved. Refresh Xelvora to see it live.");
 }
 
 async function deleteProduct(productId) {

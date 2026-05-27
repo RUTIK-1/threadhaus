@@ -1,7 +1,7 @@
 {
-  "name": "clothing-store",
+  "name": "xelvora",
   "version": "1.0.0",
-  "description": "Full-stack clothing ecommerce starter with a Node backend and responsive storefront.",
+  "description": "Xelvora full-stack clothing ecommerce site with a Node backend and responsive storefront.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
