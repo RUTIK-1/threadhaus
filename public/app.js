@@ -92,6 +92,7 @@ const checkoutForm = document.querySelector("#checkoutForm");
 const formMessage = document.querySelector("#formMessage");
 const searchInput = document.querySelector("#searchInput");
 const filters = document.querySelectorAll(".filter");
+const productStat = document.querySelector("#productStat");
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -267,6 +268,7 @@ async function loadProducts() {
 
   renderProducts();
   renderCart();
+  if (productStat) productStat.textContent = state.products.length;
 }
 
 productGrid.addEventListener("click", (event) => {

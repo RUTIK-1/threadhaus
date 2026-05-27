@@ -5,6 +5,7 @@ A clean full-stack clothing ecommerce starter with:
 - Responsive storefront with filters, product cards, cart drawer, and checkout flow
 - Node.js backend using only built-in modules
 - Product catalog API
+- Browser admin page for product add/edit/delete
 - Server-side order validation
 - Local order persistence in `data/orders.json`
 
@@ -20,13 +21,28 @@ Then open:
 http://localhost:3000
 ```
 
+Admin page:
+
+```text
+http://localhost:3000/admin.html
+```
+
 ## API
 
 ```text
 GET  /api/health
 GET  /api/products
 POST /api/orders
+POST /api/admin/products
+PUT  /api/admin/products/:id
+DELETE /api/admin/products/:id
 ```
+
+## Admin Security
+
+For a public deployment, set an `ADMIN_KEY` environment variable in Render/Railway. Then enter the same key in the admin page before saving products.
+
+If `ADMIN_KEY` is not set, the admin page is open. That is convenient for local testing, but not safe for a real public website.
 
 Example order payload:
 

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin - Threadhaus</title>
+    <meta name="description" content="Manage Threadhaus clothing products.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">Threadhaus</a>
+      <nav class="nav" aria-label="Admin navigation">
+        <a href="/">Storefront</a>
+        <a href="#products">Products</a>
+      </nav>
+      <a class="admin-link" href="/">View store</a>
+    </header>
+
+    <main class="admin-shell" id="products">
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Admin</p>
+          <h1>Product manager</h1>
+          <p>Add clothing products, update prices, change images, and remove old stock from the website.</p>
+        </div>
+      </section>
+
+      <section class="admin-layout">
+        <form class="admin-form" id="productForm">
+          <input type="hidden" name="currentId" id="currentId">
+
+          <div class="form-head">
+            <div>
+              <p class="eyebrow">Catalog</p>
+              <h2 id="formTitle">Add product</h2>
+            </div>
+            <button class="secondary-button" id="resetForm" type="button">New</button>
+          </div>
+
+          <label>
+            Admin key
+            <input id="adminKey" type="password" autocomplete="current-password" placeholder="Only needed after setting ADMIN_KEY">
+          </label>
+
+          <label>
+            Product name
+            <input name="name" required placeholder="Cotton Shirt">
+          </label>
+
+          <div class="field-grid">
+            <label>
+              Category
+              <select name="category" required>
+                <option value="Women">Women</option>
+                <option value="Men">Men</option>
+                <option value="Unisex">Unisex</option>
+              </select>
+            </label>
+            <label>
+              Collection
+              <input name="collection" required placeholder="Essentials">
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Price
+              <input name="price" type="number" min="1" required placeholder="1999">
+            </label>
+            <label>
+              Badge
+              <input name="badge" required placeholder="New">
+            </label>
+          </div>
+
+          <label>
+            Image URL
+            <input name="image" type="url" required placeholder="https://example.com/product.jpg">
+          </label>
+
+          <label>
+            Description
+            <textarea name="description" rows="3" required placeholder="Short product description"></textarea>
+          </label>
+
+          <div class="field-grid">
+            <label>
+              Sizes
+              <input name="sizes" required placeholder="S, M, L, XL">
+            </label>
+            <label>
+              Colors
+              <input name="colors" required placeholder="Black, White">
+            </label>
+          </div>
+
+          <button class="checkout-button" type="submit">Save product</button>
+          <p class="form-message" id="adminMessage" role="status"></p>
+        </form>
+
+        <section class="admin-products">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Live</p>
+              <h2>Products</h2>
+            </div>
+            <span id="productCount">0 items</span>
+          </div>
+          <div class="admin-product-list" id="adminProductList"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="admin.js" defer></script>
+  </body>
+</html>

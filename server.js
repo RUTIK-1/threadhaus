@@ -7,8 +7,10 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const ORDERS_FILE = path.join(ROOT, "data", "orders.json");
+const PRODUCTS_FILE = path.join(ROOT, "data", "products.json");
+const ADMIN_KEY = process.env.ADMIN_KEY || "";
 
-const products = [
+const seedProducts = [
   {
     id: "linen-overshirt",
     name: "Linen Overshirt",
@@ -116,7 +118,81 @@ async function readBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-function validateOrder(order) {
+function slugify(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+}
+
+async function readProducts() {
+  await fs.mkdir(path.dirname(PRODUCTS_FILE), { recursive: true });
+
+  try {
+    const products = JSON.parse(await fs.readFile(PRODUCTS_FILE, "utf8"));
+    if (Array.isArray(products)) return products;
+  } catch {
+    await writeProducts(seedProducts);
+  }
+
+  return seedProducts;
+}
+
+async function writeProducts(products) {
+  await fs.mkdir(path.dirname(PRODUCTS_FILE), { recursive: true });
+  await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2));
+}
+
+function requireAdmin(req, res) {
+  if (!ADMIN_KEY) return true;
+  if (req.headers["x-admin-key"] === ADMIN_KEY) return true;
+  sendJson(res, 401, { errors: ["Admin key is required."] });
+  return false;
+}
+
+function normalizeList(value) {
+  if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function validateProduct(input, existingProducts, currentId = "") {
+  const errors = [];
+  const name = String(input.name || "").trim();
+  const id = slugify(input.id || name);
+  const category = String(input.category || "").trim();
+  const collection = String(input.collection || "").trim();
+  const price = Number(input.price);
+  const rating = Number(input.rating || 4.5);
+  const badge = String(input.badge || "New").trim();
+  const description = String(input.description || "").trim();
+  const image = String(input.image || "").trim();
+  const colors = normalizeList(input.colors);
+  const sizes = normalizeList(input.sizes);
+
+  if (!name) errors.push("Product name is required.");
+  if (!id) errors.push("Product ID is required.");
+  if (existingProducts.some((product) => product.id === id && product.id !== currentId)) errors.push("Product ID already exists.");
+  if (!category) errors.push("Category is required.");
+  if (!collection) errors.push("Collection is required.");
+  if (!Number.isFinite(price) || price < 1) errors.push("Price must be greater than zero.");
+  if (!Number.isFinite(rating) || rating < 0 || rating > 5) errors.push("Rating must be between 0 and 5.");
+  if (!description) errors.push("Description is required.");
+  if (!image) errors.push("Image URL is required.");
+  if (!colors.length) errors.push("Add at least one color.");
+  if (!sizes.length) errors.push("Add at least one size.");
+
+  return {
+    errors,
+    product: { id, name, category, collection, price, rating, badge, description, colors, sizes, image }
+  };
+}
+
+async function validateOrder(order) {
   const errors = [];
   if (!order.customer?.name || order.customer.name.trim().length < 2) errors.push("Name is required.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.customer?.email || "")) errors.push("Valid email is required.");
@@ -125,6 +201,7 @@ function validateOrder(order) {
 
   const items = [];
   let total = 0;
+  const products = await readProducts();
 
   for (const item of order.items || []) {
     const product = products.find((entry) => entry.id === item.productId);
@@ -163,6 +240,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/products") {
+    const products = await readProducts();
     const category = url.searchParams.get("category");
     const collection = url.searchParams.get("collection");
     const query = (url.searchParams.get("q") || "").toLowerCase();
@@ -177,10 +255,60 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { products: filtered });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/admin/products") {
+    if (!requireAdmin(req, res)) return;
+
+    try {
+      const body = await readBody(req);
+      const products = await readProducts();
+      const validation = validateProduct(body, products);
+      if (validation.errors.length) return sendJson(res, 400, { errors: validation.errors });
+
+      products.push(validation.product);
+      await writeProducts(products);
+      return sendJson(res, 201, { product: validation.product, products });
+    } catch {
+      return sendJson(res, 400, { errors: ["Could not create product."] });
+    }
+  }
+
+  if (req.method === "PUT" && url.pathname.startsWith("/api/admin/products/")) {
+    if (!requireAdmin(req, res)) return;
+
+    try {
+      const currentId = decodeURIComponent(url.pathname.split("/").pop());
+      const body = await readBody(req);
+      const products = await readProducts();
+      const index = products.findIndex((product) => product.id === currentId);
+      if (index === -1) return sendJson(res, 404, { errors: ["Product not found."] });
+
+      const validation = validateProduct({ ...products[index], ...body }, products, currentId);
+      if (validation.errors.length) return sendJson(res, 400, { errors: validation.errors });
+
+      products[index] = validation.product;
+      await writeProducts(products);
+      return sendJson(res, 200, { product: validation.product, products });
+    } catch {
+      return sendJson(res, 400, { errors: ["Could not update product."] });
+    }
+  }
+
+  if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/products/")) {
+    if (!requireAdmin(req, res)) return;
+
+    const currentId = decodeURIComponent(url.pathname.split("/").pop());
+    const products = await readProducts();
+    const nextProducts = products.filter((product) => product.id !== currentId);
+    if (nextProducts.length === products.length) return sendJson(res, 404, { errors: ["Product not found."] });
+
+    await writeProducts(nextProducts);
+    return sendJson(res, 200, { products: nextProducts });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/orders") {
     try {
       const body = await readBody(req);
-      const validation = validateOrder(body);
+      const validation = await validateOrder(body);
       if (validation.errors.length) return sendJson(res, 400, { errors: validation.errors });
 
       const order = {
